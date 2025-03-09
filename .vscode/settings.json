@@ -1,0 +1,12 @@
+{
+    "files.associations": {
+        "usbh_audio.h": "c",
+        "usbh_core.h": "c",
+        "stm32f4xx_ll_usb.h": "c",
+        "stm32f4xx_hal_def.h": "c",
+        "stm32_hal_legacy.h": "c",
+        "stm32f4xx.h": "c",
+        "usb_host.h": "c",
+        "main.h": "c"
+    }
+}
