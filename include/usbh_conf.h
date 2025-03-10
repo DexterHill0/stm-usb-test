@@ -1,4 +1,21 @@
 /* USER CODE BEGIN Header */
+/**
+ ******************************************************************************
+ * @file           : Target/usbh_conf.h
+ * @version        : v1.0_Cube
+ * @brief          : Header for usbh_conf.c file.
+ ******************************************************************************
+ * @attention
+ *
+ * Copyright (c) 2025 STMicroelectronics.
+ * All rights reserved.
+ *
+ * This software is licensed under terms that can be found in the LICENSE file
+ * in the root directory of this software component.
+ * If no LICENSE file comes with this software, it is provided AS-IS.
+ *
+ ******************************************************************************
+ */
 /* USER CODE END Header */
 
 /* Define to prevent recursive inclusion -------------------------------------*/
@@ -20,6 +37,29 @@ extern "C" {
 /* USER CODE BEGIN INCLUDE */
 
 /* USER CODE END INCLUDE */
+
+/** @addtogroup STM32_USB_HOST_LIBRARY
+ * @{
+ */
+
+/** @defgroup USBH_CONF
+ * @brief usb host low level driver configuration file
+ * @{
+ */
+
+/** @defgroup USBH_CONF_Exported_Variables USBH_CONF_Exported_Variables
+ * @brief Public variables.
+ * @{
+ */
+
+/**
+ * @}
+ */
+
+/** @defgroup USBH_CONF_Exported_Defines USBH_CONF_Exported_Defines
+ * @brief Defines for configuration of the Usb host.
+ * @{
+ */
 
 /*----------   -----------*/
 #define USBH_MAX_NUM_ENDPOINTS 2U
@@ -52,6 +92,21 @@ extern "C" {
 /* #define for FS and HS identification */
 #define HOST_HS 0
 #define HOST_FS 1
+
+#if (USBH_USE_OS == 1)
+#include "cmsis_os.h"
+#define USBH_PROCESS_PRIO osPriorityNormal
+#define USBH_PROCESS_STACK_SIZE ((uint16_t)0)
+#endif /* (USBH_USE_OS == 1) */
+
+/**
+ * @}
+ */
+
+/** @defgroup USBH_CONF_Exported_Macros USBH_CONF_Exported_Macros
+ * @brief Aliases.
+ * @{
+ */
 
 /* Memory management macros */
 
@@ -107,6 +162,38 @@ extern "C" {
     do {                 \
     } while (0)
 #endif
+
+/**
+ * @}
+ */
+
+/** @defgroup USBH_CONF_Exported_Types USBH_CONF_Exported_Types
+ * @brief Types.
+ * @{
+ */
+
+/**
+ * @}
+ */
+
+/** @defgroup USBH_CONF_Exported_FunctionsPrototype USBH_CONF_Exported_FunctionsPrototype
+ * @brief Declaration of public functions for Usb host.
+ * @{
+ */
+
+/* Exported functions -------------------------------------------------------*/
+
+/**
+ * @}
+ */
+
+/**
+ * @}
+ */
+
+/**
+ * @}
+ */
 
 #ifdef __cplusplus
 }

@@ -7,6 +7,12 @@
         "stm32_hal_legacy.h": "c",
         "stm32f4xx.h": "c",
         "usb_host.h": "c",
-        "main.h": "c"
+        "main.h": "c",
+        "usb_hid.h": "c",
+        "usbh_hid.h": "c",
+        "usbh_hid_parser.h": "c",
+        "custom_usbh_audio.h": "c",
+        "tusb.h": "c",
+        "usbh_platform.h": "c"
     }
 }

@@ -100,7 +100,7 @@ int _write(int file, char *ptr, int len) {
 void UART_Init(void) {
     UartHandle.Instance = USARTx;
 
-    UartHandle.Init.BaudRate = 9600;
+    UartHandle.Init.BaudRate = 256000;
     UartHandle.Init.WordLength = UART_WORDLENGTH_8B;
     UartHandle.Init.StopBits = UART_STOPBITS_1;
     UartHandle.Init.Parity = UART_PARITY_NONE;
@@ -144,44 +144,6 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef *huart) {
     HAL_GPIO_DeInit(USARTx_TX_GPIO_PORT, USARTx_TX_PIN);
     HAL_GPIO_DeInit(USARTx_RX_GPIO_PORT, USARTx_RX_PIN);
 }
-
-// int main(void) {
-//     HAL_Init();
-
-//     BSP_LED_Init(LED_BUILTIN);
-
-//     SystemClock_Config();
-
-//     UART_Init();
-
-//     // USB INIT
-//     __HAL_RCC_GPIOB_CLK_ENABLE();
-//     __HAL_RCC_GPIOA_CLK_ENABLE();
-
-//     MX_USB_HOST_Init();
-
-//     HAL_Delay(1000);
-
-//     printf("Starting!\n");
-
-//     while (1) {
-//         MX_USB_HOST_Process();
-//     }
-// }
-
-// // void OTG_FS_IRQHandler(void) {
-// //     printf("Interrupt!\n");
-// //     USER_HAL_HCD_IRQHandler();
-// // }
-
-// void Error_Handler(void) {
-//     // BSP_LED_On(LED_BUILTIN);
-
-//     __disable_irq();
-//     while (1) {
-//         printf("ERRORFAULT\n");
-//     }
-// }
 
 extern HCD_HandleTypeDef hhcd_USB_OTG_FS;
 
@@ -235,52 +197,6 @@ void OTG_FS_IRQHandler(void) {
 
     /* USER CODE END OTG_FS_IRQn 1 */
 }
-
-/* USER CODE BEGIN Header */
-/**
- ******************************************************************************
- * @file           : main.c
- * @brief          : Main program body
- ******************************************************************************
- * @attention
- *
- * Copyright (c) 2025 STMicroelectronics.
- * All rights reserved.
- *
- * This software is licensed under terms that can be found in the LICENSE file
- * in the root directory of this software component.
- * If no LICENSE file comes with this software, it is provided AS-IS.
- *
- ******************************************************************************
- */
-/* USER CODE END Header */
-/* Includes ------------------------------------------------------------------*/
-
-/* Private includes ----------------------------------------------------------*/
-/* USER CODE BEGIN Includes */
-
-/* USER CODE END Includes */
-
-/* Private typedef -----------------------------------------------------------*/
-/* USER CODE BEGIN PTD */
-
-/* USER CODE END PTD */
-
-/* Private define ------------------------------------------------------------*/
-/* USER CODE BEGIN PD */
-
-/* USER CODE END PD */
-
-/* Private macro -------------------------------------------------------------*/
-/* USER CODE BEGIN PM */
-
-/* USER CODE END PM */
-
-/* Private variables ---------------------------------------------------------*/
-
-/* USER CODE BEGIN PV */
-
-/* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
@@ -406,8 +322,6 @@ void SystemClock_Config(void) {
  */
 static void MX_GPIO_Init(void) {
     GPIO_InitTypeDef GPIO_InitStruct = {0};
-    /* USER CODE BEGIN MX_GPIO_Init_1 */
-    /* USER CODE END MX_GPIO_Init_1 */
 
     /* GPIO Ports Clock Enable */
     __HAL_RCC_GPIOH_CLK_ENABLE();
@@ -423,14 +337,7 @@ static void MX_GPIO_Init(void) {
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
     HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-
-    /* USER CODE BEGIN MX_GPIO_Init_2 */
-    /* USER CODE END MX_GPIO_Init_2 */
 }
-
-/* USER CODE BEGIN 4 */
-
-/* USER CODE END 4 */
 
 /**
  * @brief  This function is executed in case of error occurrence.
@@ -444,19 +351,3 @@ void Error_Handler(void) {
     }
     /* USER CODE END Error_Handler_Debug */
 }
-
-#ifdef USE_FULL_ASSERT
-/**
- * @brief  Reports the name of the source file and the source line number
- *         where the assert_param error has occurred.
- * @param  file: pointer to the source file name
- * @param  line: assert_param error line source number
- * @retval None
- */
-void assert_failed(uint8_t *file, uint32_t line) {
-    /* USER CODE BEGIN 6 */
-    /* User can add his own implementation to report the file name and line number,
-       ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
-    /* USER CODE END 6 */
-}
-#endif /* USE_FULL_ASSERT */

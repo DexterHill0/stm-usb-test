@@ -22,10 +22,20 @@
 
 #include "usb_host.h"
 
-#include "usbh_audio.h"
+#include "custom_usbh_audio.h"
+// #include "custom_usbh_audio.h"
+// #include "usbh_audio.h"
 #include "usbh_core.h"
 
 /* USER CODE BEGIN Includes */
+
+void print_array(uint8_t *data_arr, uint8_t data_length) {
+    printf("[");
+    for (int i = 0; i < data_length; i++) {
+        printf("%d,", data_arr[i]);
+    }
+    printf("]\n");
+}
 
 /* USER CODE END Includes */
 
@@ -77,7 +87,8 @@ void MX_USB_HOST_Init(void) {
         printf("USBH_Init Error\n");
         Error_Handler();
     }
-    if (USBH_RegisterClass(&hUsbHostFS, USBH_AUDIO_CLASS) != USBH_OK) {
+
+    if (USBH_RegisterClass(&hUsbHostFS, USBH_CUSTOM_AUDIO_CLASS) != USBH_OK) {
         printf("USBH_RegisterClass Error\n");
         Error_Handler();
     }
@@ -108,6 +119,12 @@ void MX_USB_HOST_Init(void) {
 void MX_USB_HOST_Process(void) {
     /* USB Host Background task */
     USBH_Process(&hUsbHostFS);
+
+    // printf("LENGTH %d %d %d\n", hUsbHostFS.device.Data[0], hUsbHostFS.device.Data[1], hUsbHostFS.device.Data[2]);
+
+    // print_array(&hUsbHostFS.device.Data, USBH_MAX_DATA_BUFFER);
+
+    // print_array(((AUDIO_HandleTypeDef *)hUsbHostFS.pActiveClass->pData)->microphone.buf, ((AUDIO_HandleTypeDef *)hUsbHostFS.pActiveClass->pData)->microphone.total_length);
 }
 /*
  * user callback definition
@@ -123,8 +140,11 @@ static void USBH_UserProcess(USBH_HandleTypeDef *phost, uint8_t id) {
             break;
 
         case HOST_USER_CLASS_ACTIVE:
+            USBH_AUDIO_SetFrequency(&hUsbHostFS, 44100, 1, 16);
             printf("suck my huge cock (device connected and active)\n");
+            printf("Microphone Sample Rate: %lu Hz\n", ((AUDIO_HandleTypeDef *)hUsbHostFS.pActiveClass->pData)->microphone.frequency);
             Appli_state = APPLICATION_READY;
+
             break;
 
         case HOST_USER_CONNECTION:
