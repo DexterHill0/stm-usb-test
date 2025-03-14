@@ -175,13 +175,30 @@ USBH_ClassTypeDef CUSTOM_AUDIO_Class =
 };
 
 volatile uint8_t audio_flag = 0;  // Global flag
-/**
- * @}
- */
+                                  /**
+                                   * @}
+                                   */
 
 /** @defgroup USBH_AUDIO_CORE_Private_Functions
  * @{
  */
+
+uint32_t get_sample_rate(AUDIO_ASFormatTypeDescTypeDef *desc, uint8_t index) {
+    if (index >= desc->bSamFreqType)
+        return 0;
+
+    return (uint32_t)desc->tSamFreq[index][0] |
+           ((uint32_t)desc->tSamFreq[index][1] << 8) |
+           ((uint32_t)desc->tSamFreq[index][2] << 16);
+}
+
+uint8_t get_bit_depth(AUDIO_ASFormatTypeDescTypeDef *desc) {
+    return desc->bBitResolution;
+}
+
+uint8_t get_n_channels(AUDIO_ASFormatTypeDescTypeDef *desc) {
+    return desc->bNrChannels;
+}
 
 /**
  * @brief  USBH_AUDIO_InterfaceInit
@@ -248,16 +265,6 @@ static USBH_StatusTypeDef USBH_AUDIO_InterfaceInit(USBH_HandleTypeDef *phost) {
                 AUDIO_Handle->microphone.EpSize = AUDIO_Handle->stream_in[index].EpSize;
                 AUDIO_Handle->microphone.Poll = (uint8_t)AUDIO_Handle->stream_out[index].Poll;
                 AUDIO_Handle->microphone.supported = 1U;
-
-                if (AUDIO_Handle->microphone.buf) {
-                    USBH_free(AUDIO_Handle->microphone.buf);
-                }
-
-                AUDIO_Handle->microphone.buf = (uint8_t *)USBH_malloc(AUDIO_Handle->microphone.frame_length);
-                if (AUDIO_Handle->microphone.buf == NULL) {
-                    return USBH_FAIL;  // Handle allocation failure
-                }
-                memset(AUDIO_Handle->microphone.buf, 0, AUDIO_Handle->microphone.frame_length);
             }
         }
     }
@@ -301,16 +308,6 @@ static USBH_StatusTypeDef USBH_AUDIO_InterfaceInit(USBH_HandleTypeDef *phost) {
                       AUDIO_Handle->microphone.EpSize);
 
         USBH_LL_SetToggle(phost, AUDIO_Handle->microphone.Pipe, 0U);
-
-        // if (AUDIO_Handle->audio_in_buffer) {
-        //     free(AUDIO_Handle->audio_in_buffer);
-        // }
-
-        // // Allocate buffer based on EpSize
-        // AUDIO_Handle->audio_in_buffer = (uint8_t *)malloc(AUDIO_Handle->microphone.EpSize);
-        // if (AUDIO_Handle->audio_in_buffer == NULL) {
-        //     return USBH_FAIL;  // Handle allocation failure
-        // }
     }
 
     if (AUDIO_Handle->control.supported == 1U) {
@@ -330,6 +327,7 @@ static USBH_StatusTypeDef USBH_AUDIO_InterfaceInit(USBH_HandleTypeDef *phost) {
 
     AUDIO_Handle->req_state = AUDIO_REQ_INIT;
     AUDIO_Handle->control_state = AUDIO_CONTROL_INIT;
+    AUDIO_Handle->freq_state = AUDIO_FREQ_SET_INFERFACE1;
 
     return USBH_OK;
 }
@@ -380,6 +378,8 @@ static USBH_StatusTypeDef USBH_AUDIO_ClassRequest(USBH_HandleTypeDef *phost) {
     USBH_StatusTypeDef status = USBH_BUSY;
     USBH_StatusTypeDef req_status = USBH_BUSY;
 
+    uint32_t max_freq_idx = 0;
+
     /* Switch AUDIO REQ state machine */
     switch (AUDIO_Handle->req_state) {
         case AUDIO_REQ_INIT:
@@ -399,15 +399,6 @@ static USBH_StatusTypeDef USBH_AUDIO_ClassRequest(USBH_HandleTypeDef *phost) {
                 }
             } else {
                 AUDIO_Handle->req_state = AUDIO_REQ_SET_DEFAULT_OUT_INTERFACE;
-
-#if (USBH_USE_OS == 1U)
-                phost->os_msg = (uint32_t)USBH_URB_EVENT;
-#if (osCMSIS < 0x20000U)
-                (void)osMessagePut(phost->os_event, phost->os_msg, 0U);
-#else
-                (void)osMessageQueuePut(phost->os_event, &phost->os_msg, 0U, NULL);
-#endif
-#endif
             }
             break;
 
@@ -484,7 +475,7 @@ static USBH_StatusTypeDef USBH_AUDIO_ClassRequest(USBH_HandleTypeDef *phost) {
                                                AUDIO_Handle->headphone.AltSettings);
 
                 if (req_status == USBH_OK) {
-                    AUDIO_Handle->req_state = AUDIO_REQ_IDLE;
+                    AUDIO_Handle->req_state = AUDIO_REQ_GET_FREQ;
                 } else if (req_status == USBH_NOT_SUPPORTED) {
                     USBH_ErrLog("Control error: AUDIO: Device Set interface request failed");
                     status = USBH_FAIL;
@@ -492,18 +483,108 @@ static USBH_StatusTypeDef USBH_AUDIO_ClassRequest(USBH_HandleTypeDef *phost) {
                     /* .. */
                 }
             } else {
-                AUDIO_Handle->req_state = AUDIO_REQ_IDLE;
-
-#if (USBH_USE_OS == 1U)
-                phost->os_msg = (uint32_t)USBH_URB_EVENT;
-#if (osCMSIS < 0x20000U)
-                (void)osMessagePut(phost->os_event, phost->os_msg, 0U);
-#else
-                (void)osMessageQueuePut(phost->os_event, &phost->os_msg, 0U, NULL);
-#endif
-#endif
+                AUDIO_Handle->req_state = AUDIO_REQ_GET_FREQ;
             }
             break;
+
+        case AUDIO_REQ_GET_FREQ:
+            if (AUDIO_Handle->microphone.supported == 1U) {
+                // USBH_StatusTypeDef status = USBH_AC_GetFreq(phost);
+                // if (status == USBH_OK) {
+                //     AUDIO_Handle->req_state = AUDIO_REQ_IDLE;
+
+                //     printf("GOT FREQ %d %d %d!\n", AUDIO_Handle->mem[0], AUDIO_Handle->mem[1], AUDIO_Handle->mem[2]);
+                // } else if (status == USBH_NOT_SUPPORTED) {
+                //     printf("FAILED TO GET FREQ\n");
+                //     status = USBH_FAIL;
+                // } else {
+                //     /* .. */
+                // }
+
+                uint32_t max_freq_idx = 0;
+                uint32_t max_freq = 0;
+
+                for (int i = 0; i < AUDIO_MAX_SAMFREQ_NBR; i++) {
+                    uint32_t freq = get_sample_rate(AUDIO_Handle->class_desc.as_desc[0].FormatTypeDesc, i);
+                    if (max_freq < freq) {
+                        max_freq = freq;
+                        max_freq_idx = i;
+                    }
+                    printf("GETTING MAX FREQ: %d\n", max_freq);
+                }
+
+                uint8_t bit_depth = get_bit_depth(AUDIO_Handle->class_desc.as_desc[0].FormatTypeDesc);
+                uint8_t n_chan = get_n_channels(AUDIO_Handle->class_desc.as_desc[0].FormatTypeDesc);
+
+                AUDIO_Handle->microphone.frequency = max_freq;
+                AUDIO_Handle->microphone.frame_length = (max_freq * bit_depth * n_chan) / 8000U;
+
+                printf("FRAME LENGTH INNER: %d\n", AUDIO_Handle->microphone.frame_length);
+                printf("SUB FRAME SIZE: %d\n", AUDIO_Handle->class_desc.as_desc[0].FormatTypeDesc->bSubframeSize);
+
+                if (AUDIO_Handle->microphone.buf) {
+                    USBH_free(AUDIO_Handle->microphone.buf);
+                }
+
+                AUDIO_Handle->microphone.buf = (uint8_t *)USBH_malloc(AUDIO_Handle->microphone.frame_length);
+                if (AUDIO_Handle->microphone.buf == NULL) {
+                    return USBH_FAIL;  // Handle allocation failure
+                }
+                memset(AUDIO_Handle->microphone.buf, 0, AUDIO_Handle->microphone.frame_length);
+
+                AUDIO_Handle->req_state = AUDIO_REQ_SET_FREQ;
+            }
+            break;
+
+        case AUDIO_REQ_SET_FREQ:
+            if (AUDIO_Handle->microphone.supported == 1U) {
+                if (AUDIO_Handle->freq_state == AUDIO_FREQ_SET_INFERFACE1) {
+                    USBH_StatusTypeDef status = USBH_SetInterface(phost, AUDIO_INTERFACE_NUM, 0);
+
+                    // printf("STATUS USBH_SetInterface 0 %d!\n", status);
+
+                    if (status == USBH_OK) {
+                        AUDIO_Handle->freq_state = AUDIO_FREQ_SET_INFERFACE2;
+                    } else if (status == USBH_NOT_SUPPORTED) {
+                        printf("Failed to set interface for freq\n");
+                        status = USBH_FAIL;
+                    }
+
+                } else if (AUDIO_Handle->freq_state == AUDIO_FREQ_SET_INFERFACE2) {
+                    USBH_StatusTypeDef status = USBH_SetInterface(phost, AUDIO_INTERFACE_NUM, 1);
+
+                    // printf("STATUS USBH_SetInterface 1 %d!\n", status);
+
+                    if (status == USBH_OK) {
+                        AUDIO_Handle->freq_state = AUDIO_FREQ_URB_OUT;
+                    } else if (status == USBH_NOT_SUPPORTED) {
+                        // printf("Failed to set interface 2 for freq\n");
+                        status = USBH_FAIL;
+                    }
+                } else if (AUDIO_Handle->freq_state == AUDIO_FREQ_URB_OUT) {
+                    AUDIO_Handle->mem[0] = AUDIO_Handle->class_desc.as_desc[0].FormatTypeDesc->tSamFreq[max_freq_idx][0];
+                    AUDIO_Handle->mem[1] = AUDIO_Handle->class_desc.as_desc[0].FormatTypeDesc->tSamFreq[max_freq_idx][1];
+                    AUDIO_Handle->mem[2] = AUDIO_Handle->class_desc.as_desc[0].FormatTypeDesc->tSamFreq[max_freq_idx][2];
+
+                    USBH_StatusTypeDef status = USBH_AUDIO_SetEndpointControls(phost, AUDIO_Handle->microphone.Ep, (uint8_t *)(AUDIO_Handle->mem));
+
+                    // printf("STATUS USBH_AUDIO_SetEndpointControls %d!\n", status);
+
+                    if (status == USBH_OK) {
+                        AUDIO_Handle->freq_state = AUDIO_FREQ_SET_INFERFACE1;
+                        AUDIO_Handle->req_state = AUDIO_REQ_IDLE;
+
+                        printf("Set freq for mic successfully!\n");
+
+                    } else if (status == USBH_NOT_SUPPORTED) {
+                        printf("Failed to set freq for mic\n");
+                        status = USBH_FAIL;
+                    }
+                }
+            }
+
+            break;
+
         case AUDIO_REQ_IDLE:
             AUDIO_Handle->play_state = AUDIO_PLAYBACK_INIT;
             phost->pUser(phost, HOST_USER_CLASS_ACTIVE);
@@ -893,6 +974,11 @@ static USBH_StatusTypeDef ParseCSDescriptors(AUDIO_ClassSpecificDescTypedef *cla
                     break;
                 case UAC_FORMAT_TYPE:
                     class_desc->as_desc[class_desc->ASNum++].FormatTypeDesc = (AUDIO_ASFormatTypeDescTypeDef *)(void *)pdesc;
+                    printf("ADDING AUDIO_ASFormatTypeDescTypeDef to index %d\n", class_desc->ASNum);
+
+                    for (int i = 0; i < AUDIO_MAX_SAMFREQ_NBR; i++) {
+                        printf("AVAILABLE FREQS: %d\n", get_sample_rate((AUDIO_ASFormatTypeDescTypeDef *)(void *)pdesc, i));
+                    }
                     break;
                 default:
                     break;
@@ -1439,7 +1525,7 @@ static USBH_StatusTypeDef USBH_AUDIO_SetEndpointControls(USBH_HandleTypeDef *pho
                                                          uint8_t *buff) {
     uint16_t wValue, wIndex, wLength;
 
-    wValue = SAMPLING_FREQ_CONTROL << 8U;
+    wValue = SAMPLING_FREQ_CONTROL;
     wIndex = Ep;
     wLength = 3U; /*length of the frequency parameter*/
 
@@ -1480,6 +1566,8 @@ static USBH_StatusTypeDef USBH_AUDIO_InputStream(USBH_HandleTypeDef *phost) {
             printf("%d,", samples[i]);
         }
         printf("\n");
+
+        memset((void *)AUDIO_Handle->microphone.buf, 0, AUDIO_Handle->microphone.frame_length);
 
     } else {
         status = USBH_BUSY;

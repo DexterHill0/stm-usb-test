@@ -82,7 +82,15 @@ typedef enum {
     AUDIO_REQ_SET_IN_INTERFACE,
     AUDIO_REQ_SET_OUT_INTERFACE,
     AUDIO_REQ_CS_REQUESTS,
+    AUDIO_REQ_GET_FREQ,
+    AUDIO_REQ_SET_FREQ
 } AUDIO_ReqStateTypeDef;
+
+typedef enum {
+    AUDIO_FREQ_SET_INFERFACE1 = 1,
+    AUDIO_FREQ_SET_INFERFACE2,
+    AUDIO_FREQ_URB_OUT,
+} AUDIO_FreqSetStateTypeDef;
 
 typedef enum {
     AUDIO_REQ_SET_VOLUME = 1,
@@ -214,7 +222,8 @@ typedef struct
 #define MICROPHONE_SUPPORTED 2U
 #define HEADSET_SUPPORTED 3U
 
-#define AUDIO_MAX_SAMFREQ_NBR 5U
+// THIS SHOULD BE DYNAMIC
+#define AUDIO_MAX_SAMFREQ_NBR 16U
 #define AUDIO_MAX_INTERFACE_NBR 5U
 #define AUDIO_MAX_CONTROLS_NBR 5U
 
@@ -365,6 +374,8 @@ typedef struct _AUDIO_Process {
     AUDIO_ControlStateTypeDef control_state;
     AUDIO_ProcessingTypeDef processing_state;
 
+    AUDIO_FreqSetStateTypeDef freq_state;
+
     AUDIO_STREAMING_IN_HandleTypeDef stream_in[AUDIO_MAX_AUDIO_STD_INTERFACE];
     AUDIO_STREAMING_OUT_HandleTypeDef stream_out[AUDIO_MAX_AUDIO_STD_INTERFACE];
     AUDIO_ClassSpecificDescTypedef class_desc;
@@ -408,9 +419,12 @@ typedef struct _AUDIO_Process {
 #define UAC_PROCESSING_UNIT 0x07U
 #define UAC_EXTENSION_UNIT 0x08U
 
+#define AUDIO_INTERFACE_NUM 1U  // From your descriptor
+
 /*Audio Class-Specific Endpoint Descriptor Subtypes*/
 #define EP_CONTROL_UNDEFINED 0x00U
-#define SAMPLING_FREQ_CONTROL 0x01U
+// #define SAMPLING_FREQ_CONTROL 0x01U
+#define SAMPLING_FREQ_CONTROL 0x0100U
 #define PITCH_CONTROL 0x02U
 
 /*Feature unit control selector*/
@@ -425,6 +439,7 @@ typedef struct _AUDIO_Process {
 #define DELAY_CONTROL 0x08U
 #define BASS_BOOST_CONTROL 0x09U
 #define LOUDNESS_CONTROL 0x0AU
+// #define FREQ_CONTROL 0x0100U
 
 /*Terminal control selector*/
 #define TE_CONTROL_UNDEFINED 0x00U

@@ -140,9 +140,8 @@ static void USBH_UserProcess(USBH_HandleTypeDef *phost, uint8_t id) {
             break;
 
         case HOST_USER_CLASS_ACTIVE:
-            USBH_AUDIO_SetFrequency(&hUsbHostFS, 44100, 1, 16);
-            printf("suck my huge cock (device connected and active)\n");
-            printf("Microphone Sample Rate: %lu Hz\n", ((AUDIO_HandleTypeDef *)hUsbHostFS.pActiveClass->pData)->microphone.frequency);
+            // USBH_AUDIO_SetFrequency(&hUsbHostFS, 44100, 1, 16);
+            printf("MIC FREQ: %d, BD %d, NCHAN %d\n", ((AUDIO_HandleTypeDef *)hUsbHostFS.pActiveClass->pData)->microphone.frequency, ((AUDIO_HandleTypeDef *)hUsbHostFS.pActiveClass->pData)->class_desc.as_desc->FormatTypeDesc->bBitResolution, ((AUDIO_HandleTypeDef *)hUsbHostFS.pActiveClass->pData)->class_desc.as_desc->FormatTypeDesc->bNrChannels);
             Appli_state = APPLICATION_READY;
 
             break;
